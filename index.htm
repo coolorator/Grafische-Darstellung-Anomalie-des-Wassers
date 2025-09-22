@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Visualisierung: Dichteanomalie des Wassers</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin-top: 2rem;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #005a9e;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            text-align: center;
+            margin-top: 0;
+            color: #555;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Die Dichteanomalie des Wassers</h1>
+        <p>
+            Dieser interaktive Graph zeigt, wie sich das Volumen von Wasser bei Temperaturänderung verhält. 
+            <b>Benutze das Mausrad oder eine Pinch-Geste auf dem Touchpad, um in die Kurve hineinzoomen.</b> 
+            Halte die Maustaste gedrückt und bewege die Maus, um den Graphen zu verschieben. So kannst du die Anomalie bei 4°C entdecken!
+        </p>
+        <canvas id="waterVolumeChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+
+    <script>
+        // === DATENGENERIERUNG ===
+        // Diese Funktion erzeugt die Datenpunkte für den Graphen,
+        // basierend auf den physikalischen Eigenschaften von Wasser und Eis.
+
+        const labels = [];
+        const waterData = [];
+        const iceData = [];
+
+        // Koeffizienten zur physikalisch angenäherten Darstellung
+        const waterVolumeCoefficient = 7.7e-6; // Für die Parabel des flüssigen Wassers
+        const iceContractionCoefficient = 1.53e-4; // Für die lineare Kontraktion von Eis
+        const volumeAt4C = 1.00000;
+        const volumeJumpFactor = 1.0905; // ca. 9% Volumenzunahme beim Gefrieren
+
+        // Generiere Datenpunkte von +10°C bis -20°C in 0.1°C Schritten
+        for (let temp = 10; temp >= -20; temp -= 0.1) {
+            const currentTemp = parseFloat(temp.toFixed(1));
+            labels.push(currentTemp);
+
+            if (currentTemp >= 0) {
+                // FLÜSSIGES WASSER (10°C bis 0°C)
+                // Das Volumen wird durch eine Parabel angenähert, deren Minimum bei 4°C liegt.
+                // V(T) = V_min * (1 + a * (T - 4)^2)
+                const volume = volumeAt4C * (1 + waterVolumeCoefficient * Math.pow(currentTemp - 4, 2));
+                waterData.push({ x: currentTemp, y: volume });
+                iceData.push({ x: currentTemp, y: NaN }); // Kein Eis in diesem Bereich
+            } else {
+                // EIS (unter 0°C)
+                // Das Volumen von Eis nimmt linear ab (thermische Kontraktion).
+                const volumeWaterAt0 = volumeAt4C * (1 + waterVolumeCoefficient * Math.pow(0 - 4, 2));
+                const volumeIceAt0 = volumeWaterAt0 * volumeJumpFactor;
+                const iceVolume = volumeIceAt0 * (1 + iceContractionCoefficient * currentTemp);
+                iceData.push({ x: currentTemp, y: iceVolume });
+                waterData.push({ x: currentTemp, y: NaN }); // Kein flüssiges Wasser
+            }
+        }
+        
+        // Füge den Sprungpunkt für Eis bei 0°C explizit hinzu
+        const volumeWaterAt0 = volumeAt4C * (1 + waterVolumeCoefficient * Math.pow(0 - 4, 2));
+        const volumeIceAt0 = volumeWaterAt0 * volumeJumpFactor;
+        labels.push(0); // Label existiert schon, aber wir fügen den Eis-Datenpunkt hinzu
+        iceData.push({x: 0, y: volumeIceAt0});
+
+
+        // === CHART KONFIGURATION ===
+        const ctx = document.getElementById('waterVolumeChart').getContext('2d');
+        const waterChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                // Die Daten werden umgekehrt, damit die X-Achse von links nach rechts ansteigt (-20°C -> 10°C)
+                labels: labels.slice().reverse(),
+                datasets: [
+                    {
+                        label: 'Flüssiges Wasser',
+                        data: waterData.slice().reverse(),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderWidth: 3,
+                        pointRadius: 0, // Punkte standardmäßig ausblenden
+                        pointHitRadius: 5,
+                        tension: 0.1, // Sorgt für eine leicht geglättete Kurve
+                        spanGaps: false // Verhindert, dass die Lücke zu Eis überbrückt wird
+                    },
+                    {
+                        label: 'Eis',
+                        data: iceData.slice().reverse(),
+                        borderColor: 'rgba(173, 216, 230, 1)',
+                        backgroundColor: 'rgba(173, 216, 230, 0.5)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHitRadius: 5,
+                        spanGaps: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Temperatur (°C)',
+                            font: { size: 16 }
+                        },
+                        // Die Achse wird hier explizit von -20 bis 10 sortiert
+                        min: -20,
+                        max: 10
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Relatives Volumen',
+                            font: { size: 16 }
+                        },
+                        // Beginnt die Y-Achse knapp unter dem Minimum, um die Anomalie hervorzuheben
+                        min: 0.9999, 
+                        grace: '5%' // Fügt oben etwas Platz hinzu
+                    }
+                },
+                plugins: {
+                    // Konfiguration des Zoom-Plugins
+                    zoom: {
+                        pan: {
+                            enabled: true, // Schwenken/Verschieben mit gedrückter Maustaste
+                            mode: 'x',     // Nur entlang der x-Achse
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true, // Zoomen mit dem Mausrad
+                            },
+                            pinch: {
+                                enabled: true // Zoomen mit Pinch-Geste (für Touch-Geräte)
+                            },
+                            mode: 'x', // Nur entlang der x-Achse zoomen
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            // Formatiert den Tooltip für bessere Lesbarkeit
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    // Zeigt das Volumen mit 6 Nachkommastellen an
+                                    label += context.parsed.y.toFixed(6);
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
