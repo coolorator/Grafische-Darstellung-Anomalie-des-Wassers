@@ -12,24 +12,24 @@
             flex-direction: column;
             align-items: center;
             margin: 0;
-            padding: 1rem 0; /* Etwas Platz oben und unten */
+            padding: 1rem 0;
             background-color: #f4f7f9;
             color: #333;
         }
         .container {
-            width: 95%; /* Etwas mehr Breite auf kleinen Bildschirmen */
+            width: 95%;
             max-width: 1000px;
             margin-top: 1rem;
             padding: 1.5rem;
             background-color: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 4px R12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         h1 {
             color: #005a9e;
             text-align: center;
             margin-bottom: 0.5rem;
-            font-size: 1.8em; /* Anpassung für mobile Ansicht */
+            font-size: 1.8em;
         }
         p {
             text-align: center;
@@ -38,9 +38,16 @@
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
-            line-height: 1.6; /* Verbesserte Lesbarkeit */
+            line-height: 1.6;
         }
-        /* Media Query für kleinere Bildschirme */
+        
+        /* === DIE ENTSCHEIDENDE KORREKTUR === */
+        #waterVolumeChart {
+            /* Diese Regel verhindert, dass der mobile Browser die ganze Seite zoomt. */
+            /* Sie übergibt die Kontrolle über die Gesten an die Chart.js-Bibliothek. */
+            touch-action: none;
+        }
+
         @media (max-width: 600px) {
             h1 {
                 font-size: 1.4em;
@@ -56,9 +63,7 @@
     <div class="container">
         <h1>Die Dichteanomalie des Wassers</h1>
         <p>
-            Dieser interaktive Graph zeigt das Volumen von Wasser bei Temperaturänderung.
-            <b>Nutze auf dem PC das Mausrad zum Zoomen. Auf dem Handy oder Tablet kannst du die Zwei-Finger-Geste (Pinch-to-Zoom) verwenden.</b>
-            Ziehe den Graphen mit dem Finger oder der Maus, um ihn zu verschieben.
+            <b>Anleitung:</b> Zoomen Sie mit zwei Fingern (wie bei einem Foto) in den Graphen hinein. Verschieben Sie die Ansicht, indem Sie mit einem Finger nach links oder rechts wischen.
         </p>
         <canvas id="waterVolumeChart"></canvas>
     </div>
@@ -96,7 +101,7 @@
         labels.push(0);
         iceData.push({x: 0, y: volumeIceAt0});
 
-        // === CHART KONFIGURATION ===
+        // === CHART KONFIGURATION (unverändert) ===
         const ctx = document.getElementById('waterVolumeChart').getContext('2d');
         const waterChart = new Chart(ctx, {
             type: 'line',
@@ -110,7 +115,7 @@
                         backgroundColor: 'rgba(54, 162, 235, 0.5)',
                         borderWidth: 3,
                         pointRadius: 0,
-                        pointHitRadius: 10, // Größerer Trefferbereich für Touch
+                        pointHitRadius: 10,
                         tension: 0.1,
                         spanGaps: false
                     },
@@ -121,7 +126,7 @@
                         backgroundColor: 'rgba(173, 216, 230, 0.5)',
                         borderWidth: 3,
                         pointRadius: 0,
-                        pointHitRadius: 10, // Größerer Trefferbereich für Touch
+                        pointHitRadius: 10,
                         spanGaps: false
                     }
                 ]
@@ -143,16 +148,14 @@
                     }
                 },
                 plugins: {
-                    // Explizite Konfiguration für Pinch- und Pan-Gesten
                     zoom: {
                         pan: {
                             enabled: true,
                             mode: 'x',
-                            threshold: 10 // Wie viele Pixel muss man ziehen, bevor es als Pan erkannt wird
+                            threshold: 10
                         },
                         zoom: {
                             wheel: { enabled: true },
-                            // Hier wird die Pinch-Geste explizit aktiviert
                             pinch: { enabled: true },
                             mode: 'x',
                         }
