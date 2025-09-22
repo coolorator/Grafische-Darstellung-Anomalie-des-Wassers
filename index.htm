@@ -2,8 +2,13 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktive Visualisierung: Dichteanomalie des Wassers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <title>Finale Version: Dichteanomalie des Wassers</title>
     
     <style>
         body {
@@ -14,7 +19,6 @@
             margin: 0;
             padding: 1rem 0;
             background-color: #f4f7f9;
-            color: #333;
         }
         .container {
             width: 95%;
@@ -29,32 +33,36 @@
             color: #005a9e;
             text-align: center;
             margin-bottom: 0.5rem;
-            font-size: 1.8em;
         }
         p {
             text-align: center;
             margin-top: 0;
             color: #555;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
             line-height: 1.6;
+            margin-bottom: 1.5rem;
         }
         
-        /* === DIE ENTSCHEIDENDE KORREKTUR === */
-        #waterVolumeChart {
-            /* Diese Regel verhindert, dass der mobile Browser die ganze Seite zoomt. */
-            /* Sie übergibt die Kontrolle über die Gesten an die Chart.js-Bibliothek. */
-            touch-action: none;
+        /* Wichtigste Regel: Verhindert den Browser-Zoom auf dem Diagramm */
+        #chart-wrapper {
+            position: relative;
+            width: 100%;
+            touch-action: none; /* Deaktiviert Browser-Standardgesten für dieses Element */
         }
 
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 1.4em;
-            }
-            .container {
-                padding: 1rem;
-            }
+        /* Styling für den Reset-Button */
+        #resetZoomBtn {
+            margin-top: 1rem;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #resetZoomBtn:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
@@ -63,9 +71,14 @@
     <div class="container">
         <h1>Die Dichteanomalie des Wassers</h1>
         <p>
-            <b>Anleitung:</b> Zoomen Sie mit zwei Fingern (wie bei einem Foto) in den Graphen hinein. Verschieben Sie die Ansicht, indem Sie mit einem Finger nach links oder rechts wischen.
+            <b>Anleitung:</b> Benutzen Sie <b>zwei Finger</b> direkt auf dem Diagramm, um zu zoomen (auseinanderziehen) und zu stauchen (zusammendrücken). Verschieben Sie die Ansicht mit <b>einem Finger</b> nach links oder rechts. Doppelklick funktioniert hier nicht.
         </p>
-        <canvas id="waterVolumeChart"></canvas>
+        
+        <div id="chart-wrapper">
+            <canvas id="waterVolumeChart"></canvas>
+        </div>
+        
+        <button id="resetZoomBtn">Zoom zurücksetzen</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -101,82 +114,38 @@
         labels.push(0);
         iceData.push({x: 0, y: volumeIceAt0});
 
-        // === CHART KONFIGURATION (unverändert) ===
+        // === CHART KONFIGURATION ===
         const ctx = document.getElementById('waterVolumeChart').getContext('2d');
         const waterChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels.slice().reverse(),
                 datasets: [
-                    {
-                        label: 'Flüssiges Wasser',
-                        data: waterData.slice().reverse(),
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                        borderWidth: 3,
-                        pointRadius: 0,
-                        pointHitRadius: 10,
-                        tension: 0.1,
-                        spanGaps: false
-                    },
-                    {
-                        label: 'Eis',
-                        data: iceData.slice().reverse(),
-                        borderColor: 'rgba(173, 216, 230, 1)',
-                        backgroundColor: 'rgba(173, 216, 230, 0.5)',
-                        borderWidth: 3,
-                        pointRadius: 0,
-                        pointHitRadius: 10,
-                        spanGaps: false
-                    }
+                    { label: 'Flüssiges Wasser', data: waterData.slice().reverse(), borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 3, pointRadius: 0, pointHitRadius: 10, tension: 0.1, spanGaps: false },
+                    { label: 'Eis', data: iceData.slice().reverse(), borderColor: 'rgba(173, 216, 230, 1)', borderWidth: 3, pointRadius: 0, pointHitRadius: 10, spanGaps: false }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 scales: {
-                    x: {
-                        type: 'linear',
-                        title: { display: true, text: 'Temperatur (°C)', font: { size: 14 } },
-                        min: -20,
-                        max: 10
-                    },
-                    y: {
-                        title: { display: true, text: 'Relatives Volumen', font: { size: 14 } },
-                        min: 0.9999,
-                        grace: '5%'
-                    }
+                    x: { type: 'linear', title: { display: true, text: 'Temperatur (°C)', font: { size: 14 } }, min: -20, max: 10 },
+                    y: { title: { display: true, text: 'Relatives Volumen', font: { size: 14 } }, min: 0.9999, grace: '5%' }
                 },
                 plugins: {
                     zoom: {
-                        pan: {
-                            enabled: true,
-                            mode: 'x',
-                            threshold: 10
-                        },
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x',
-                        }
+                        pan: { enabled: true, mode: 'x' },
+                        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
                     },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) { label += ': '; }
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y.toFixed(6);
-                                }
-                                return label;
-                            }
-                        }
-                    },
+                    tooltip: { mode: 'index', intersect: false },
                     legend: { position: 'top' }
                 }
             }
+        });
+
+        // Funktionalität für den Reset-Button
+        document.getElementById('resetZoomBtn').addEventListener('click', () => {
+            waterChart.resetZoom();
         });
     </script>
 
